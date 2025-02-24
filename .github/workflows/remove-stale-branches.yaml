@@ -1,0 +1,29 @@
+name: Clean stale branches
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all branches
+        run: |
+          git remote add upstream https://github.com/flotiq/flotiq-nextjs-blog-starter.git
+          git fetch --all --prune
+
+      - name: Remove stale branches
+        run: |
+          for branch in $(git branch -r | grep 'origin/' |  grep -v 'origin/HEAD' | sed 's#origin/##'); do
+            if [[ ! $(git branch -r | grep "upstream/$branch") ]]; then
+              echo "Branch $branch no longer exists in upstream. Deleting..."
+              git push origin --delete $branch || echo "Failed to delete $branch"
+            fi
+          done
